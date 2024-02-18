@@ -18,7 +18,17 @@ class UserCreate(APIView):
         if reg_serializer.is_valid():
             new_user = reg_serializer.save()
             if new_user:
-                return Response(status=status.HTTP_201_CREATED)
+                refresh = RefreshToken.for_user(new_user)
+                refresh.payload.update({
+                    'user_id': new_user.id,
+                    'username': new_user.username
+                })
+
+                return Response({
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token)
+                }, status=status.HTTP_201_CREATED)
+
         return Response(reg_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -47,3 +57,22 @@ class UserLogin(APIView):
             'refresh': str(refresh),
             'access': str(refresh.access_token)
         })
+
+
+class UserLogout(APIView):
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response({'error': 'Refresh token is missing'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except Exception as e:
+            return Response({'error': f'{e}'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'success': 'Logout successfully'},
+                        status=status.HTTP_200_OK)
