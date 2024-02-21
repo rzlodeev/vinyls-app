@@ -1,7 +1,6 @@
 from rest_framework.routers import DefaultRouter
-from app_api.views import UserList, DiscList
+from .views import UserProfileList
 
 router = DefaultRouter()
-router.register(r'users', UserList, basename='user')
-router.register(r'discs', DiscList, basename='disc')
+router.register(r'user-profile', UserProfileList, basename='user-profile')
 urlpatterns = router.urls

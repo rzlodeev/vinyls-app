@@ -1,10 +1,11 @@
-from django.contrib.auth import authenticate
-from django.shortcuts import render
-from rest_framework import status
+from django.contrib.auth import authenticate, get_user_model
+from rest_framework import status, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import UserSerializer
 
 from .serializers import RegisterUserSerializer
 from .models import User
@@ -21,7 +22,7 @@ class UserCreate(APIView):
                 refresh = RefreshToken.for_user(new_user)
                 refresh.payload.update({
                     'user_id': new_user.id,
-                    'username': new_user.username
+                    'email': new_user.email
                 })
 
                 return Response({
@@ -76,3 +77,18 @@ class UserLogout(APIView):
 
         return Response({'success': 'Logout successfully'},
                         status=status.HTTP_200_OK)
+
+
+class UserList(GenericViewSet,
+               mixins.RetrieveModelMixin,
+               mixins.ListModelMixin):
+    serializer_class = UserSerializer
+    queryset = get_user_model().objects.all()
+
+    def get_permissions(self):
+        permissions_mapping = {
+            'list': [IsAdminUser],
+            'retrieve': [AllowAny]
+        }
+        permission_classes = permissions_mapping.get(self.action, [])
+        return [permission() for permission in permission_classes]
